@@ -8,6 +8,7 @@ import { Navigation } from "@/components/nav"
 type Roadmap = {
   roadmap_id: number
   description: string
+  duration_weeks: number
 }
 
 export default function AssistantPage() {
@@ -17,36 +18,30 @@ export default function AssistantPage() {
 
   const [userId, setUserId] = useState<string | null>(null)
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([])
-  const [selectedRoadmap, setSelectedRoadmap] = useState<number | null>(null)
+  const [selectedRoadmap, setSelectedRoadmap] = useState<Roadmap | null>(null)
 
-  // 1️⃣ Get logged-in user
+  const [week, setWeek] = useState<number | "">("")
+  const [day, setDay] = useState<number | "">("")
+
+  // Load user
   useEffect(() => {
-    const loadUser = async () => {
-      const { data } = await supabase.auth.getUser()
+    supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUserId(data.user.id)
-    }
-    loadUser()
+    })
   }, [])
 
-  // 2️⃣ Load user roadmaps
+  // Load roadmaps
   useEffect(() => {
     if (!userId) return
 
-    const loadRoadmaps = async () => {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/roadmaps?user_id=${userId}`
-      )
-      const json = await res.json()
-      setRoadmaps(json)
-      if (json.length > 0) {
-        setSelectedRoadmap(json[0].roadmap_id)
-      }
-    }
-
-    loadRoadmaps()
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/roadmaps?user_id=${userId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setRoadmaps(data)
+        if (data.length) setSelectedRoadmap(data[0])
+      })
   }, [userId])
 
-  // 3️⃣ Ask AI
   const handleAsk = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!question.trim() || !userId || !selectedRoadmap) return
@@ -54,24 +49,28 @@ export default function AssistantPage() {
     setIsLoading(true)
     setResponse("")
 
+    const payload: any = {
+      user_id: userId,
+      roadmap_id: selectedRoadmap.roadmap_id,
+      input_data: question,
+    }
+
+    if (week) payload.week_number = week
+    if (day) payload.day_number = day
+
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/ask-assistant`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            roadmap_id: selectedRoadmap,
-            input_data: question,
-          }),
+          body: JSON.stringify(payload),
         }
       )
 
       const json = await res.json()
-      setResponse(json.response || "No response from assistant.")
-    } catch (err) {
-      console.error("AI assistant error:", err)
+      setResponse(json.response)
+    } catch {
       setResponse("Something went wrong. Please try again.")
     } finally {
       setIsLoading(false)
@@ -82,20 +81,30 @@ export default function AssistantPage() {
     <div className="min-h-screen bg-gradient-to-br from-zinc-950 via-zinc-900 to-black pb-12">
       <Navigation />
 
-      <div className="max-w-3xl mx-auto px-6 py-12">
-        <h1 className="text-4xl font-bold text-zinc-50 mb-6 text-center">
-          AI Learning Assistant
-        </h1>
+      <div className="max-w-3xl mx-auto px-6 py-12 space-y-6">
+        {/* 🤖 Header */}
+        <div className="glass-card p-6 text-center">
+          <div className="text-5xl mb-2">🤖</div>
+          <h1 className="text-3xl font-bold text-zinc-50">
+            AI Learning Assistant
+          </h1>
+          <p className="text-zinc-400 mt-2">
+            Ask questions in the context of your roadmap
+          </p>
+        </div>
 
-        {/* Roadmap Selector */}
-        <div className="glass-card p-4 mb-6">
-          <label className="block text-sm text-zinc-400 mb-2">
-            Select roadmap
-          </label>
+        {/* Context Selectors */}
+        <div className="glass-card p-4 space-y-4">
           <select
-            value={selectedRoadmap ?? ""}
-            onChange={(e) => setSelectedRoadmap(Number(e.target.value))}
             className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100"
+            value={selectedRoadmap?.roadmap_id ?? ""}
+            onChange={(e) =>
+              setSelectedRoadmap(
+                roadmaps.find(
+                  (r) => r.roadmap_id === Number(e.target.value)
+                ) || null
+              )
+            }
           >
             {roadmaps.map((r) => (
               <option key={r.roadmap_id} value={r.roadmap_id}>
@@ -103,22 +112,58 @@ export default function AssistantPage() {
               </option>
             ))}
           </select>
+
+          {/* Week + Day (optional) */}
+          <div className="flex gap-4">
+            <select
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100"
+              value={week}
+              onChange={(e) =>
+                setWeek(e.target.value ? Number(e.target.value) : "")
+              }
+            >
+              <option value="">All weeks</option>
+              {selectedRoadmap &&
+                Array.from(
+                  { length: selectedRoadmap.duration_weeks },
+                  (_, i) => i + 1
+                ).map((w) => (
+                  <option key={w} value={w}>
+                    Week {w}
+                  </option>
+                ))}
+            </select>
+
+            <select
+              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-2 text-zinc-100"
+              value={day}
+              onChange={(e) =>
+                setDay(e.target.value ? Number(e.target.value) : "")
+              }
+            >
+              <option value="">All days</option>
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <option key={d} value={d}>
+                  Day {d}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {/* Question */}
         <form onSubmit={handleAsk} className="glass-card p-6 space-y-4">
           <textarea
+            rows={4}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="Ask something about this roadmap..."
-            rows={4}
+            placeholder="Ask something about your roadmap..."
             className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-zinc-100"
-            disabled={isLoading}
           />
 
           <button
             type="submit"
-            disabled={isLoading || !question.trim()}
+            disabled={isLoading}
             className="w-full py-3 bg-blue-600 rounded-lg text-white font-semibold"
           >
             {isLoading ? "Thinking…" : "Ask AI"}
@@ -126,7 +171,7 @@ export default function AssistantPage() {
         </form>
 
         {response && (
-          <div className="glass-card p-6 mt-6">
+          <div className="glass-card p-6">
             <h3 className="font-semibold text-zinc-50 mb-2">Response</h3>
             <p className="text-zinc-300 whitespace-pre-wrap">{response}</p>
           </div>
