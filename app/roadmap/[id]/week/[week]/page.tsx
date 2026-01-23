@@ -17,24 +17,17 @@ type WeekData = {
 }
 
 const API =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000" // fallback (must be running)
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
 
 export default function WeekPage() {
-  const { id, week } = useParams<{
-    id: string
-    week: string
-  }>()
+  const { id, week } = useParams<{ id: string; week: string }>()
 
   const [data, setData] = useState<WeekData | null>(null)
   const [loading, setLoading] = useState(true)
   const [apiDown, setApiDown] = useState(false)
 
-  // ----------------------------
-  // Load week data
-  // ----------------------------
   useEffect(() => {
-    if (!id || !week || week === "null") return
+    if (!id || !week) return
 
     const loadWeek = async () => {
       try {
@@ -43,21 +36,14 @@ export default function WeekPage() {
         )
 
         if (!res.ok) {
-          console.error("Week fetch failed:", res.status)
           setApiDown(true)
           return
         }
 
         const json = await res.json()
-        if (!json?.days) {
-          setData(null)
-          return
-        }
-
-        setApiDown(false)
         setData(json)
-      } catch (err) {
-        console.error("Backend unreachable:", err)
+        setApiDown(false)
+      } catch {
         setApiDown(true)
       } finally {
         setLoading(false)
@@ -67,34 +53,30 @@ export default function WeekPage() {
     loadWeek()
   }, [id, week])
 
-  // ----------------------------
-  // Toggle task completion
-  // ----------------------------
   const toggleTask = async (taskId: string, completed: boolean) => {
     if (!data || apiDown) return
 
-    const previous = structuredClone(data)
+    const prev = structuredClone(data)
 
-    // Optimistic UI update
-    setData((prev) => {
-      if (!prev) return prev
+    setData((curr) => {
+      if (!curr) return curr
 
-      const days: WeekData["days"] = {}
-      for (const [d, tasks] of Object.entries(prev.days)) {
-        days[d] = tasks.map((t) =>
-          t.id === taskId ? { ...t, completed } : t
-        )
-      }
+      const days = Object.fromEntries(
+        Object.entries(curr.days).map(([d, tasks]) => [
+          d,
+          tasks.map((t) =>
+            t.id === taskId ? { ...t, completed } : t
+          ),
+        ])
+      )
 
       const all = Object.values(days).flat()
       const done = all.filter((t) => t.completed).length
 
       return {
-        ...prev,
+        ...curr,
         days,
-        progress: all.length
-          ? Math.round((done / all.length) * 100)
-          : 0,
+        progress: Math.round((done / all.length) * 100),
       }
     })
 
@@ -105,20 +87,13 @@ export default function WeekPage() {
         body: JSON.stringify({ task_id: taskId, completed }),
       })
 
-      if (!res.ok) {
-        console.error("Update rejected:", res.status)
-        setData(previous)
-      }
-    } catch (err) {
-      console.error("Backend unreachable:", err)
+      if (!res.ok) setData(prev)
+    } catch {
       setApiDown(true)
-      setData(previous)
+      setData(prev)
     }
   }
 
-  // ----------------------------
-  // UI states
-  // ----------------------------
   if (loading) {
     return (
       <div className="min-h-screen bg-black">
@@ -128,49 +103,50 @@ export default function WeekPage() {
     )
   }
 
-  if (apiDown) {
+  if (apiDown || !data) {
     return (
       <div className="min-h-screen bg-black">
         <Navigation />
-        <div className="p-6 text-red-400">
-          Backend unreachable. Start the API server.
-        </div>
-      </div>
-    )
-  }
-
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-black">
-        <Navigation />
-        <p className="p-6 text-zinc-400">
-          No data found for this week.
+        <p className="p-6 text-red-400">
+          Backend unavailable. Please start the API.
         </p>
       </div>
     )
   }
 
-  // ----------------------------
-  // Render
-  // ----------------------------
+  const totalTasks = Object.values(data.days).flat().length
+  const completedTasks = Object.values(data.days)
+    .flat()
+    .filter((t) => t.completed).length
+
   return (
     <div className="min-h-screen bg-black">
       <Navigation />
 
       <div className="max-w-4xl mx-auto p-6 space-y-6">
-        <h1 className="text-3xl text-white">
-          Week {data.week_number}
-        </h1>
+        <div>
+          <h1 className="text-3xl text-white">
+            Week {data.week_number}
+          </h1>
+          <p className="text-zinc-400 mt-1">
+            Stay consistent — small wins every day compound
+          </p>
+        </div>
 
-        <div className="h-3 bg-zinc-800 rounded">
-          <div
-            className="h-3 bg-blue-500 rounded transition-all duration-500"
-            style={{ width: `${data.progress}%` }}
-          />
+        <div className="space-y-2">
+          <div className="h-3 bg-zinc-800 rounded">
+            <div
+              className="h-3 bg-blue-500 rounded transition-all"
+              style={{ width: `${data.progress}%` }}
+            />
+          </div>
+          <p className="text-xs text-zinc-500">
+            {completedTasks} / {totalTasks} tasks completed
+          </p>
         </div>
 
         {Object.entries(data.days).map(([day, tasks]) => (
-          <div key={day} className="glass-card p-4">
+          <div key={day} className="glass-card p-5">
             <h2 className="text-white font-semibold mb-3">
               Day {day}
             </h2>
