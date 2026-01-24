@@ -8,6 +8,8 @@ type Task = {
   id: string
   task_text: string
   completed: boolean
+  category?: string
+  effort?: string
 }
 
 type WeekData = {
@@ -31,10 +33,7 @@ export default function WeekPage() {
 
     const loadWeek = async () => {
       try {
-        const res = await fetch(
-          `${API}/roadmap/${id}/week/${week}`
-        )
-
+        const res = await fetch(`${API}/roadmap/${id}/week/${week}`)
         if (!res.ok) {
           setApiDown(true)
           return
@@ -155,7 +154,7 @@ export default function WeekPage() {
               {tasks.map((t) => (
                 <label
                   key={t.id}
-                  className="flex gap-3 text-zinc-300"
+                  className="flex gap-3 text-zinc-300 items-start"
                 >
                   <input
                     type="checkbox"
@@ -163,17 +162,24 @@ export default function WeekPage() {
                     onChange={(e) =>
                       toggleTask(t.id, e.target.checked)
                     }
-                    className="accent-blue-500"
+                    className="accent-blue-500 mt-1"
                   />
-                  <span
-                    className={
-                      t.completed
-                        ? "line-through text-zinc-500"
-                        : ""
-                    }
-                  >
-                    {t.task_text}
-                  </span>
+                  <div>
+                    <p
+                      className={
+                        t.completed
+                          ? "line-through text-zinc-500"
+                          : ""
+                      }
+                    >
+                      {t.task_text}
+                    </p>
+                    {(t.category || t.effort) && (
+                      <p className="text-xs text-zinc-500 mt-0.5">
+                        {t.category} · {t.effort}
+                      </p>
+                    )}
+                  </div>
                 </label>
               ))}
             </div>

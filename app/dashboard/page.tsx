@@ -14,9 +14,10 @@ type Roadmap = {
 
 type Task = {
   id: string
+  roadmap_id: number
   task_text: string
   completed: boolean
-  updated_at: string
+  completed_at?: string
   week_number: number
   day_number: number
 }
@@ -29,9 +30,6 @@ export default function DashboardPage() {
 
   const API = process.env.NEXT_PUBLIC_API_URL!
 
-  // -----------------------------
-  // Load Dashboard Data
-  // -----------------------------
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase.auth.getUser()
@@ -39,12 +37,10 @@ export default function DashboardPage() {
 
       setUserId(data.user.id)
 
-      // Roadmaps
       const r = await fetch(`${API}/roadmaps?user_id=${data.user.id}`)
       const roadmapData = await r.json()
       setRoadmaps(roadmapData || [])
 
-      // Tasks (flattened)
       const allTasks: Task[] = []
 
       for (const rm of roadmapData) {
@@ -62,17 +58,15 @@ export default function DashboardPage() {
     load()
   }, [])
 
-  // -----------------------------
-  // Stats
-  // -----------------------------
-  const completedTasks = tasks.filter(t => t.completed).length
+  const completedTasks = tasks.filter((t) => t.completed).length
 
-  // Learning streak (correct & simple)
+  // ✅ CORRECT, SINGLE STREAK LOGIC
   const streak = (() => {
     const days = new Set<string>()
-    tasks.forEach(t => {
-      if (t.completed && t.updated_at) {
-        days.add(t.updated_at.slice(0, 10))
+
+    tasks.forEach((t) => {
+      if (t.completed && t.completed_at) {
+        days.add(t.completed_at.slice(0, 10))
       }
     })
 
@@ -90,23 +84,24 @@ export default function DashboardPage() {
     return count
   })()
 
-  // Today's tasks
   const todaysTasks = tasks
-    .filter(t => !t.completed)
-    .sort((a, b) =>
-      a.week_number - b.week_number || a.day_number - b.day_number
+    .filter((t) => !t.completed)
+    .sort(
+      (a, b) =>
+        a.week_number - b.week_number ||
+        a.day_number - b.day_number
     )
     .slice(0, 5)
 
-  // -----------------------------
-  // Helpers
-  // -----------------------------
   const roadmapProgress = (roadmapId: number) => {
-    const rTasks = tasks.filter(t => t.id && t)
-    const total = rTasks.length
-    if (!total) return 0
-    const done = rTasks.filter(t => t.completed).length
-    return Math.round((done / total) * 100)
+    const rTasks = tasks.filter(
+      (t) => t.roadmap_id === roadmapId
+    )
+
+    if (!rTasks.length) return 0
+
+    const done = rTasks.filter((t) => t.completed).length
+    return Math.round((done / rTasks.length) * 100)
   }
 
   const deleteRoadmap = async (roadmapId: number) => {
@@ -118,7 +113,9 @@ export default function DashboardPage() {
       method: "DELETE",
     })
 
-    setRoadmaps(prev => prev.filter(r => r.roadmap_id !== roadmapId))
+    setRoadmaps((prev) =>
+      prev.filter((r) => r.roadmap_id !== roadmapId)
+    )
   }
 
   const logout = async () => {
@@ -126,15 +123,11 @@ export default function DashboardPage() {
     window.location.href = "/login"
   }
 
-  // -----------------------------
-  // UI
-  // -----------------------------
   return (
     <div className="min-h-screen bg-black">
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
         <div className="flex justify-between items-center mb-10">
           <div>
             <h1 className="text-4xl font-bold text-white">Dashboard</h1>
@@ -150,29 +143,35 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <div className="glass-card p-6">
             <p className="text-sm text-zinc-400">Active Roadmaps</p>
-            <p className="text-3xl font-bold text-white">{roadmaps.length}</p>
+            <p className="text-3xl font-bold text-white">
+              {roadmaps.length}
+            </p>
           </div>
 
           <div className="glass-card p-6">
             <p className="text-sm text-zinc-400">Tasks Completed</p>
-            <p className="text-3xl font-bold text-white">{completedTasks}</p>
+            <p className="text-3xl font-bold text-white">
+              {completedTasks}
+            </p>
           </div>
 
           <div className="glass-card p-6">
             <p className="text-sm text-zinc-400">Learning Streak</p>
-            <p className="text-3xl font-bold text-white">🔥 {streak} days</p>
+            <p className="text-3xl font-bold text-white">
+              🔥 {streak} days
+            </p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Roadmaps */}
           <div className="lg:col-span-2">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Your Roadmaps</h2>
+              <h2 className="text-2xl font-bold text-white">
+                Your Roadmaps
+              </h2>
               <Link
                 href="/generate"
                 className="px-4 py-2 bg-blue-600 text-white rounded"
@@ -183,11 +182,9 @@ export default function DashboardPage() {
 
             {loading ? (
               <p className="text-zinc-400">Loading…</p>
-            ) : roadmaps.length === 0 ? (
-              <p className="text-zinc-400">No roadmaps yet.</p>
             ) : (
               <div className="space-y-4">
-                {roadmaps.map(r => {
+                {roadmaps.map((r) => {
                   const progress = roadmapProgress(r.roadmap_id)
 
                   return (
@@ -203,7 +200,6 @@ export default function DashboardPage() {
                           {r.duration_weeks} weeks · {r.level}
                         </p>
 
-                        {/* Progress */}
                         <div className="mt-4 w-full bg-zinc-800 rounded-full h-2">
                           <div
                             className="bg-blue-500 h-full rounded-full"
@@ -215,9 +211,8 @@ export default function DashboardPage() {
                         </p>
                       </Link>
 
-                      {/* Delete */}
                       <button
-                        onClick={e => {
+                        onClick={(e) => {
                           e.stopPropagation()
                           deleteRoadmap(r.roadmap_id)
                         }}
@@ -232,7 +227,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Today */}
           <div>
             <h3 className="text-xl font-bold text-white mb-4">
               Today’s Tasks
@@ -243,7 +237,7 @@ export default function DashboardPage() {
                   All caught up 🎉
                 </p>
               ) : (
-                todaysTasks.map(t => (
+                todaysTasks.map((t) => (
                   <p key={t.id} className="text-sm text-zinc-300">
                     • {t.task_text}
                   </p>
