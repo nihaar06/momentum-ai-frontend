@@ -4,13 +4,12 @@ import type { NextRequest } from "next/server"
 export function middleware(req: NextRequest) {
   const res = NextResponse.next()
 
-  // We are adding the new 'spectacular-expression' URL to the connect-src whitelist
+  // Update the whitelist to include your new spectacular-expression URL
   const connectSrc = [
     "'self'",
     "https://spectacular-expression-production.up.railway.app",
     "https://*.supabase.co",
     "https://api.supabase.com",
-    "http://localhost:8000", // For local backend testing
   ].join(" ")
 
   res.headers.set(
