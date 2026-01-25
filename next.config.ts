@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
               connect-src
                 'self'
                 http://localhost:8000
+                https://momentum-ai-production.up.railway.app
                 https://*.supabase.co
                 https://api.supabase.com;
               img-src 'self' data:;
