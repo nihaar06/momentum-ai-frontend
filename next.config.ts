@@ -12,14 +12,15 @@ const nextConfig: NextConfig = {
               default-src 'self';
               connect-src
                 'self'
-                http://localhost:8000
                 https://momentum-ai-production.up.railway.app
                 https://*.supabase.co
                 https://api.supabase.com;
-              img-src 'self' data:;
+              img-src 'self' data: https:;
               script-src 'self' 'unsafe-inline' 'unsafe-eval';
               style-src 'self' 'unsafe-inline';
-            `.replace(/\s{2,}/g, " ").trim(),
+            `
+              .replace(/\s{2,}/g, " ")
+              .trim(),
           },
         ],
       },
