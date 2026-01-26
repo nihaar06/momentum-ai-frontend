@@ -148,28 +148,34 @@ npm run lint
 
 ### Authentication
 - Login page with Google OAuth and Magic Link options
-- *[Screenshot placeholder: /login page]*
+<img width="1914" height="900" alt="image" src="https://github.com/user-attachments/assets/13d31be4-6778-4728-8592-ea35cac33531" />
+
 
 ### Dashboard
 - Roadmap list with progress indicators
 - Daily task queue
 - Streak and completion statistics
-- *[Screenshot placeholder: /dashboard page]*
+<img width="1917" height="954" alt="image" src="https://github.com/user-attachments/assets/d69aa124-d61e-44d0-a438-53bc0ae87af2" />
+
 
 ### Generate Roadmap
 - Form to create personalized learning roadmaps
 - Goal, duration, hours, and skill level inputs
-- *[Screenshot placeholder: /generate page]*
+<<img width="1920" height="907" alt="image" src="https://github.com/user-attachments/assets/6a11f1f9-2e01-4bd4-8614-06699c43422b" />
+
+
 
 ### Roadmap Progress
 - Weekly breakdown with goals and progress bars
 - Week-by-week task completion view
-- *[Screenshot placeholder: /roadmap/[id]/weeks page]*
+<img width="1918" height="924" alt="image" src="https://github.com/user-attachments/assets/3c60898f-9125-4fb6-b54e-a06de2a6ee6f" />
+
 
 ### AI Assistant
 - Question form with roadmap context
 - AI-generated responses about learning content
-- *[Screenshot placeholder: /assistant page]*
+<img width="1912" height="922" alt="image" src="https://github.com/user-attachments/assets/98635231-5e89-4ca1-b6d5-3b32cdfb868b" />
+
 
 ## Notes & Limitations
 
