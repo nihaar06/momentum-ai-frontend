@@ -8,7 +8,7 @@ export function middleware(req: NextRequest) {
     "Content-Security-Policy",
     [
       "default-src 'self'",
-      "connect-src 'self' https://momentum-ai-production.up.railway.app https://*.supabase.co https://api.supabase.com",
+      "connect-src 'self' https://momentum-ai-fb1g.onrender.com https://*.supabase.co https://api.supabase.com",
       "img-src 'self' data: https:",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
